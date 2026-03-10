@@ -1,43 +1,61 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Brain, Lock, User, ArrowRight, Loader2 } from "lucide-react";
+import { Brain, Lock, Mail, User, ArrowRight, Loader2 } from "lucide-react";
 import axios from "axios";
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
-  const [username, setUsername] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+
+  // 🔗 Connecting to the Teammate's Central Azure Database!
+  const TEAM_AZURE_BACKEND =
+    "https://neuromentor-backend--8u5ar44.thankfulcoast-1d37f0d2.eastasia.azurecontainerapps.io/api";
 
   const handleAuth = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    const endpoint = isLogin ? "/login" : "/signup";
+    if (!isLogin && password !== confirmPassword) {
+      setError("Passwords do not match!");
+      setLoading(false);
+      return;
+    }
+
+    const endpoint = isLogin ? "/auth/login" : "/auth/signup";
+    const payload = isLogin
+      ? { email, password }
+      : { name, email, password, passwordConfirm: confirmPassword };
 
     try {
       const response = await axios.post(
-        `https://vishwak03-error-driven-learning-reinforcement-engine.hf.space${endpoint}`,
-        {
-          username,
-          password,
-        },
+        `${TEAM_AZURE_BACKEND}${endpoint}`,
+        payload,
       );
 
-      if (response.data.error) {
-        setError(String(response.data.error));
-      } else {
-        localStorage.setItem("neuro_user", username);
+      // The teammate's backend returns a token and user object on success
+      if (response.data && response.data.token) {
+        const userEmail = response.data.user?.email || email;
+
+        // Save the exact email to localStorage so the Dashboard knows whose logs to fetch from Hugging Face!
+        localStorage.setItem("neuro_user", userEmail);
         navigate("/dashboard");
+      } else {
+        setError("Authentication failed. Please check your credentials.");
       }
     } catch (err) {
-      setError(
-        "Failed to connect to the server. Is the Python backend running?",
-      );
+      // Safely extract the error message from the Azure backend
+      const errorMsg =
+        err.response?.data?.message ||
+        "Failed to connect to the central authentication server.";
+      setError(errorMsg);
       console.error(err);
     } finally {
       setLoading(false);
@@ -60,7 +78,7 @@ export default function Login() {
           </h1>
           <p className="text-sm text-gray-500 mt-2 text-center">
             {isLogin
-              ? "Welcome back to your AI coding space"
+              ? "Welcome back to your unified dashboard"
               : "Create your account to start learning"}
           </p>
         </div>
@@ -74,25 +92,49 @@ export default function Login() {
 
         {/* Form */}
         <form onSubmit={handleAuth} className="space-y-5">
+          {/* ONLY SHOW NAME IF REGISTERING */}
+          {!isLogin && (
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                Full Name
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <User className="h-5 w-5 text-gray-500" />
+                </div>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-700 rounded-lg bg-gray-950 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                  placeholder="e.g. John Doe"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* EMAIL FIELD */}
           <div className="space-y-1">
             <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Email / Username
+              Email Address
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <User className="h-5 w-5 text-gray-500" />
+                <Mail className="h-5 w-5 text-gray-500" />
               </div>
               <input
-                type="text"
+                type="email"
                 required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="block w-full pl-10 pr-3 py-3 border border-gray-700 rounded-lg bg-gray-950 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="block w-full pl-10 pr-3 py-3 border border-gray-700 rounded-lg bg-gray-950 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
                 placeholder="The email you use in VS Code"
               />
             </div>
           </div>
 
+          {/* PASSWORD FIELD */}
           <div className="space-y-1">
             <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
               Password
@@ -106,11 +148,33 @@ export default function Login() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="block w-full pl-10 pr-3 py-3 border border-gray-700 rounded-lg bg-gray-950 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                className="block w-full pl-10 pr-3 py-3 border border-gray-700 rounded-lg bg-gray-950 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
                 placeholder="••••••••"
               />
             </div>
           </div>
+
+          {/* ONLY SHOW CONFIRM PASSWORD IF REGISTERING */}
+          {!isLogin && (
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-500" />
+                </div>
+                <input
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-700 rounded-lg bg-gray-950 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+          )}
 
           <button
             type="submit"
