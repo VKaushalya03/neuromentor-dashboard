@@ -463,7 +463,10 @@ export default function LandingPage() {
             support, and semantic error micro-tutorials directly inside VS Code.
           </p>
           <div className="nm-hero-actions">
-            <a href="#" className="nm-btn-primary">
+            <a
+              href="https://marketplace.visualstudio.com/items?itemName=neuromentor.Neuromentor"
+              className="nm-btn-primary"
+            >
               <svg
                 width="14"
                 height="14"
@@ -1478,7 +1481,10 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="nm-cta-actions">
-            <a href="#" className="nm-btn-primary">
+            <a
+              href="https://marketplace.visualstudio.com/items?itemName=neuromentor.Neuromentor"
+              className="nm-btn-primary"
+            >
               Install VS Code Extension
             </a>
             <button className="nm-btn-ghost" onClick={() => navigate("/login")}>
